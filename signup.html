@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <link rel="stylesheet" href="./bootstrap-5.3.3-dist/bootstrap-5.3.3-dist/css/bootstrap.min.css">
+     <link rel="stylesheet" href="./auth-responsive.css">
+     <title>Sign Up</title>
+</head>
+<body class="bg-light">
+     <form action="" id="form" class="auth-form shadow rounded">
+          <div class="text-center">
+               <h1>Sign Up</h1>
+          </div>
+          <div class="p-1">
+               <label for="">Name</label>
+               <input  class="form-control" type="text" placeholder="Name" id="firstname" required >
+          </div>
+          <div class="p-1">
+               <label for="">Email</label>
+               <input class="form-control" type="text" placeholder="Email" id="email" required >
+          </div>
+          <div class="pb-2">
+               <label for="">Password</label>
+               <input class="form-control" type="text" placeholder="Password" id="password" required>
+          </div>
+          <div>
+               <button type="submit" class="btn btn-outline-primary w-100">SignUP</button>
+          </div>          
+     </form>
+</body>
+</html>
+<script>
+     let form = document.getElementById("form");
+
+     form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          let email = document.getElementById("email").value;
+          let firstname = document.getElementById("firstname").value;
+          let password = document.getElementById("password").value;
+          
+          let newUser = {
+          firstname:firstname,
+          password:password,
+          email:email,
+          };
+
+          const users = JSON.parse(localStorage.getItem("UserDetail")) || [] 
+          users.push(newUser);
+          
+
+          let presentUser = localStorage.setItem("UserDetail", JSON.stringify(users))
+          localStorage.setItem("presentUser", JSON.stringify(newUser))
+          
+          location.href = "./login.html"
+               
+     })
+
+</script>

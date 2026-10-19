@@ -4,24 +4,41 @@
      <meta charset="UTF-8">
      <meta name="viewport" content="width=device-width, initial-scale=1.0">
      <title>Voice AI</title>
-     <link rel="stylesheet" href="style.css">
+     <link rel="stylesheet" href="./bootstrap-5.3.3-dist/bootstrap-5.3.3-dist/css/bootstrap.min.css">
+     <link rel="stylesheet" href="style.served.css">
 </head>
 <body>
      <div class="container">
           <nav>
                <div class="logo">Nova</div>
-          </nav>
-          <section class="hero">
-               <h1>Talk to Nova  – Smarter,<br>Faster, Better</h1>
-               <div class="orb-container">
-                    <div class="orb" id="orb">
-                         <div class="mic">🎤</div>
-                    </div>
+               <div class="nav-actions">
+                    <button id="themeToggle" class="theme-toggle" type="button">Light mode</button>
+                    <a id="enter" class="login-link" href="./login.html">Log in</a>
                </div>
-               <button id="speakBtn" class="speak-btn">Speak with AI</button>
-               <p id="status">Tap the button and speak</p>
-          </section>
+          </nav>
+
+          <main>
+               <section class="hero">
+                    <h1>Talk to Nova - Smarter,<br>Faster, Better</h1>
+                    <div class="orb-container">
+                         <div class="orb" id="orb">
+                              <div class="mic">MIC</div>
+                         </div>
+                    </div>
+                    <button id="speakBtn" class="speak-btn" type="button">Speak with AI</button>
+                    <p id="status" aria-live="polite">Tap the button and speak</p>
+               </section>
+
+               <section class="history-panel" aria-label="Recent chat history">
+                    <div class="history-header">
+                         <h2>Recent chats</h2>
+                         <button id="clearHistoryBtn" type="button">Clear</button>
+                    </div>
+                    <div id="chatHistory" class="chat-history"></div>
+               </section>
+          </main>
      </div>
-<script src="./App.js"></script>
-</body>
+
+     <script type="module" src="./App.served.js"></script>
+</body>     
 </html>

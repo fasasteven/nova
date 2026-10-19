@@ -1,0 +1,47 @@
+body {
+     min-height: 100vh;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     padding: 20px;
+}
+
+.auth-form {
+     width: min(100%, 480px);
+     margin: 0 auto;
+     padding: 28px;
+}
+
+.auth-form h1 {
+     margin-bottom: 24px;
+     font-size: clamp(1.75rem, 7vw, 2.5rem);
+}
+
+.auth-form .form-control {
+     min-height: 46px;
+     font-size: 16px;
+}
+
+.auth-form button {
+     min-height: 46px;
+     font-size: 16px;
+}
+
+.auth-form p {
+     margin-top: 16px;
+     line-height: 1.5;
+}
+
+@media (max-width: 420px) {
+     body {
+          padding: 12px;
+     }
+
+     .auth-form {
+          padding: 22px 18px;
+     }
+
+     .auth-form h1 {
+          margin-bottom: 18px;
+     }
+}
