@@ -74,9 +74,18 @@ nav {
 }
 
 .logo {
+     display: flex;
+     align-items: center;
+     gap: 10px;
      font-size: 22px;
      font-weight: 700;
      letter-spacing: 0;
+}
+
+.logo img {
+     width: 42px;
+     height: 42px;
+     object-fit: contain;
 }
 
 .nav-actions {
