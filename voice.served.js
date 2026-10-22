@@ -2,15 +2,15 @@
 
 const MAX_ERRORS = 3
 
-export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUserName, onCommand, recordConversation }) {
+export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUserName, onCommand, onStopCommand, recordConversation }) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
   const recognition = SpeechRecognition ? new SpeechRecognition() : null
-  let waitingForCommand = false
   let assistantBusy = false
   let activeUserMessage = null
   let listeningActive = false
   let assistantEnabled = false
   let recognitionErrorCount = 0
+  let listeningRestartTimer = null
 
   if (recognition) {
     recognition.lang = "en-US"
@@ -35,24 +35,27 @@ export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUser
     }
   }
 
+  function scheduleListeningRestart() {
+    if (!assistantEnabled || assistantBusy) {
+      return
+    }
+
+    clearTimeout(listeningRestartTimer)
+    listeningRestartTimer = setTimeout(() => {
+      listeningRestartTimer = null
+      startListening()
+    }, 250)
+  }
+
   function handleVoiceInterruption(transcript) {
     const command = transcript.replace(/^(?:hey|hello|nova)\s+/i, "").trim()
 
     if (/^(?:stop|stop talking|be quiet|quiet)$/.test(command)) {
+      onStopCommand?.()
       speechSynthesis.cancel()
       assistantBusy = false
-      waitingForCommand = false
+      activeUserMessage = null
       setStatus("Response stopped. I'm listening.")
-      return true
-    }
-
-    if (/^(?:end|end session|goodbye|exit|shut down)$/.test(command)) {
-      speechSynthesis.cancel()
-      assistantBusy = false
-      waitingForCommand = false
-      assistantEnabled = false
-      recognition?.stop()
-      setStatus("Nova has stopped. Click Speak with AI to start again.")
       return true
     }
 
@@ -76,7 +79,14 @@ export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUser
 
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = "en-US"
-    utterance.rate = 0.95
+    utterance.rate = 1
+    utterance.pitch = 1
+    const voices = speechSynthesis.getVoices()
+    const englishVoices = voices.filter((voice) => /^en(?:-|_)/i.test(voice.lang))
+    const naturalVoice = englishVoices.find((voice) =>
+      /natural|neural|premium|aria|jenny|samantha|ava|zira|google us english|microsoft.*online/i.test(voice.name)
+    )
+    utterance.voice = naturalVoice || englishVoices.find((voice) => /^en-US$/i.test(voice.lang)) || englishVoices[0] || null
     orb.classList.add("speaking")
     assistantBusy = true
 
@@ -87,12 +97,14 @@ export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUser
     utterance.onend = () => {
       orb.classList.remove("speaking")
       assistantBusy = false
+      scheduleListeningRestart()
     }
 
     utterance.onerror = () => {
       orb.classList.remove("speaking")
       assistantBusy = false
       setStatus("Nova could not play the voice response, but the answer is saved in chat history.")
+      scheduleListeningRestart()
     }
 
     speechSynthesis.speak(utterance)
@@ -111,7 +123,7 @@ export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUser
       listeningActive = false
 
       if (assistantEnabled && !assistantBusy) {
-        setTimeout(() => startListening(), 250)
+        scheduleListeningRestart()
       }
     }
 
@@ -135,8 +147,11 @@ export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUser
         return
       }
 
+      if (handleVoiceInterruption(transcript)) {
+        return
+      }
+
       if (assistantBusy) {
-        handleVoiceInterruption(transcript)
         return
       }
 
@@ -145,30 +160,27 @@ export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUser
       const wakeWordMatch = transcript.match(/^(?:(?:hello|hey)(?:\s+nova)?|nova)\b\s*/i)
       const wakeWordDetected = Boolean(wakeWordMatch)
       const cleanedTranscript = wakeWordMatch ? transcript.slice(wakeWordMatch[0].length).trim() : ""
+      const command = wakeWordDetected ? cleanedTranscript : transcript
+      const includedGreeting = wakeWordDetected && Boolean(cleanedTranscript) && /^(?:hello|hey)\b/i.test(transcript)
 
       if (wakeWordDetected && !cleanedTranscript) {
         const name = getUserName()
         const greeting = name ? `Hey ${name}, how may I help?` : "Hey, how may I help?"
         recordConversation(transcript, greeting)
         speak(greeting)
-        waitingForCommand = true
         return
       }
 
-      if (wakeWordDetected) {
-        waitingForCommand = false
-        activeUserMessage = cleanedTranscript
-        onCommand(cleanedTranscript)
+      if (/^(?:end|end session|goodbye|exit|shut down)$/i.test(command)) {
+        const message = "Nova will keep listening until you close this tab."
+        activeUserMessage = command
+        setStatus(message)
+        speak(message)
         return
       }
 
-      if (waitingForCommand) {
-        waitingForCommand = false
-        activeUserMessage = transcript
-        onCommand(transcript)
-      } else {
-        setStatus("Start with hey, hello, or Nova.")
-      }
+      activeUserMessage = command
+      onCommand(command, { includedGreeting })
     }
 
     recognition.onerror = (event) => {
@@ -176,6 +188,8 @@ export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUser
 
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
         assistantEnabled = false
+        speakBtn.textContent = "Speak with AI"
+        speakBtn.setAttribute("aria-pressed", "false")
         setStatus("Microphone access is blocked. Allow it in your browser settings, then start Nova again.")
         return
       }
@@ -202,13 +216,21 @@ export function createVoiceAssistant({ speakBtn, status, orb, setStatus, getUser
     }
 
     if (listeningActive) {
-      setStatus("Nova is already listening. Please wait for the result.")
+      setStatus("Nova is already listening. Ask your next question whenever you're ready.")
+      return
+    }
+
+    if (assistantEnabled) {
+      startListening()
+      setStatus("Nova is listening. Ask your next question whenever you're ready.")
       return
     }
 
     assistantEnabled = true
+    speakBtn.textContent = "Nova is listening"
+    speakBtn.setAttribute("aria-pressed", "true")
     startListening()
-    setStatus("Voice assistant started. Start with hey, hello, or Nova.")
+    setStatus("Voice assistant started. Ask your question now, and Nova will keep listening between replies.")
   })
 
   return { speak }

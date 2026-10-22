@@ -1,54 +1,84 @@
 # Nova Voice Assistant
 
-Nova is a browser-based voice assistant that listens for a wake word, understands simple commands, speaks responses, and remembers recent conversations.
+Nova is a browser-based voice assistant that listens for commands after you start it, understands simple requests, speaks responses, and remembers recent conversations.
 
 ## Features
 
 - Speech recognition using the browser Web Speech API.
 - Text-to-speech replies using the browser speech synthesis API.
-- Wake words: `hey`, `hello`, `nova`, `hey nova`, and `hello nova`.
-- After the first click and microphone approval, Nova keeps listening and waits for a wake word after each response.
+- Optional wake words: `hey`, `hello`, `nova`, `hey nova`, and `hello nova`.
+- After the first click and microphone approval, Nova keeps listening for direct requests between replies until you close or reload the tab.
+- Prefers a natural-sounding English voice available on the device, with a standard English voice as a fallback.
 - Personalized greeting using the signed-in user's name from `localStorage`.
 - Opens common websites such as Google, YouTube, Facebook, Instagram/IG, GitHub, Gmail, LinkedIn, Netflix, Reddit, Spotify, TikTok, WhatsApp, Wikipedia, X/Twitter, and more.
 - Opens other one-word websites, for example: `Nova open Twitch`.
 - Opens spoken domain names, for example: `Nova open example.com`.
 - Tells the current time.
 - Opens a Google weather search for a requested city.
-- Answers factual questions with a fast, free Wikipedia lookup.
-- Handles follow-up prompts such as `tell me more` and `explain that` using the latest saved discussion.
+- Answers questions conversationally with Gemini 3.8 Flash, limited to three short sentences.
+- Retries temporary Gemini server errors before switching to fallback sources.
+- Falls back to DuckDuckGo Instant Answers, then Wikipedia when Gemini is unavailable or no Gemini key is set.
+- Handles follow-up prompts using recent saved discussions.
 - Stores the latest five user-and-assistant discussions in `localStorage` under `novaDiscussions`.
 - Supports account sign-up and sign-in with browser `localStorage`.
 
 ## Voice Commands
 
-Start each request with a wake word:
+After clicking **Speak with AI**, Nova keeps listening. Ask each request directly; a wake word is optional:
 
 ```text
-Hey
-Hello Nova
-Nova open YouTube
-Hey open IG
-Hello open google.com
-Nova what time is it
-Hey weather in Lagos
-Nova who invented electricity
-Nova tell me more
-Nova stop
-Nova end
+Who is the president of Nigeria?
+Open YouTube
+What time is it?
+Weather in Lagos
+Who invented electricity?
+Tell me more
+Stop
+End
 ```
 
-Say `stop` (or `Nova stop`) while Nova is speaking to cancel the current response and continue listening. Say `end`, `goodbye`, or `Nova end` to stop the assistant session; click **Speak with AI** to start it again.
+Nova responds to greetings such as "Hi, who is the president of Nigeria?" with a greeting before the answer. You can also say "Hello" on its own and Nova will greet you.
+
+Say `stop` (or `Nova stop`) while Nova is speaking to cancel the current response. Nova keeps listening between replies; close or reload the tab to end the session. Voice quality depends on the voices installed in your browser or device.
 
 ## Running the Project
 
-1. Run `node server.js` and open `http://localhost:8000` in Chrome or Microsoft Edge.
-2. Sign up or sign in to personalize Nova's greeting.
-3. Click **Speak with AI**.
-4. Allow microphone access when the browser asks.
-5. Start speaking with `hey`, `hello`, or `nova`.
+1. In PowerShell, set the Gemini key for this server session without putting it in the source code:
+
+   ```powershell
+   $env:GEMINI_API_KEY = Read-Host "Gemini API key"
+   node server.js
+   ```
+
+   Keep this terminal open while using Nova. The key is read by the local server and is not sent to the browser.
+2. Open `http://127.0.0.1:8000` in Chrome or Microsoft Edge.
+3. Sign up or sign in to personalize Nova's greeting.
+4. Click **Speak with AI**.
+5. Allow microphone access when the browser asks.
+6. Ask Nova a question directly. You do not need to repeat the wake word.
+
+## Redeploying to Render
+
+1. Push the latest project changes to the branch connected to your Render web service.
+2. In the Render Dashboard, open the service and check its settings:
+   - **Build Command:** `npm install`
+   - **Start Command:** `node server.js`
+3. Under **Environment**, add `GEMINI_API_KEY` with your current Gemini API key. Do not add the key to project files or commit it.
+4. Save the changes and use **Manual Deploy → Deploy latest commit**, or wait for Render to deploy the pushed commit.
+5. When deployment finishes, open the Render service URL and try a question.
+
+The server uses Render's `PORT` environment variable and binds to `0.0.0.0` when deployed there. Locally, it keeps using `127.0.0.1:8000`.
+
+## Connecting Gemini
+
+Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey), then provide it to the local server using the PowerShell instructions above. Restart the server after changing the key.
+
+The browser sends questions to the local server, which forwards them to Gemini 3.8 Flash using Google's Interactions API. The server listens on `127.0.0.1` only. Do not expose it to the internet. Gemini answers are generated by a model and are not guaranteed to be current or correct. Free-tier availability and request limits depend on Google's current API terms and may change.
+
+If Gemini is temporarily busy, Nova retries twice before using fallback sources. If it remains unavailable, Nova tries DuckDuckGo Instant Answers and then Wikipedia when no quick answer is found. Nova presents the answer without naming the provider. Wikipedia fallback searches several candidate articles and only uses a title that appears relevant. All services require an internet connection, and no source can guarantee an answer for every question.
 
 ## Browser Requirements
 
 - Use Chrome or Microsoft Edge for the best speech-recognition support.
 - Speech recognition needs microphone permission and generally works best on `https://` or `localhost`.
-- The project uses browser storage only; account and discussion data stay in the current browser.
+- Account and discussion data are stored in browser storage. When Gemini is connected, the current question and up to four recent chat exchanges are sent through the local server to Google's API.

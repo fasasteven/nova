@@ -37,7 +37,8 @@ const voiceAssistant = createVoiceAssistant({
   orb: elements.orb,
   setStatus: updateStatus,
   getUserName: getCurrentUserName,
-  onCommand: (command) => commandProcessor.processCommand(command),
+  onCommand: (command, options) => commandProcessor.processCommand(command, options),
+  onStopCommand: () => commandProcessor.cancelCurrentCommand(),
   recordConversation
 })
 
